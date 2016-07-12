@@ -56,14 +56,13 @@ class FasterRCNN_Data(caffe.Layer):
     def get_next_image(self):
         while True:
             if self.phase==caffe.TRAIN:
-                blobs=self.data_queue.nextBatch()
+                blobs=self.data_queue.nextBatch(TRAIN=True)
             else:
                 blobs=self.data_queue.nextBatch(TRAIN=False)
                 
             img=blobs['data'][0,0]
             bbs,_=np.hsplit(blobs['gt_boxes'],[-1])
-            # print bbs.shape
-            if len(bbs)==0:
+            if len(bbs)==0 and self.phase==caffe.TRAIN:
                 continue
 
             bbs[:,2]-=bbs[:,0]
