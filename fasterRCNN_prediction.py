@@ -4,7 +4,8 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
 import sys
 import os
-import cfgs
+
+visualize=True
 
 def transform_bb(bb0,w,h):
     bb = np.array([0,0,0,0])
@@ -79,7 +80,7 @@ def non_max_suppression_slow(boxes,probs, overlapThresh):
     return boxes[pick]
 
 
-class FasterRCNN_Loss(caffe.Layer):
+class FasterRCNN_Prediction(caffe.Layer):
     def setup(self, bottom, top):
         self.reg_loss_weight = 0.1
         self.phase = eval(self.param_str)['phase']  
@@ -92,8 +93,6 @@ class FasterRCNN_Loss(caffe.Layer):
         top[0].reshape(1)
 
     def forward(self, bottom, top):
-        gt_box=bottom[5].data[0]
-
         sampling_param = bottom[3].data
         tags = bottom[2].data
         reg_conv = bottom[1].data
@@ -162,7 +161,7 @@ class FasterRCNN_Loss(caffe.Layer):
             print '[%s] Test net output #5: recall = %f' % (self.py_fn,cls_recall)
         sys.stdout.flush()
   
-        if True:#self.phase == 'TEST' or self.iter % 10 == 0:
+        if True: #self.phase == 'TEST' or self.iter % 10 == 0:
             img0 = bottom[4].data[0,:,:,:]
             img = np.transpose(img0, (1,2,0)) + 0.5
             
@@ -199,16 +198,16 @@ class FasterRCNN_Loss(caffe.Layer):
             cand_bbs=np.array(cand_bbs)
             cand_probs = np.array(cand_probs)  
                   
-            ind = np.argsort(cand_probs)
-            ind = ind[::-1]
-            bb_num_show = np.min([32, len(cand_bbs)])
-            cand_bbs = cand_bbs[ind[:bb_num_show]]
-            cand_probs = cand_probs[ind[:bb_num_show]]
-            for i in range(bb_num_show):
-                bb = cand_bbs[i]
-                prob = cand_probs[i]
-                ax.add_patch(Rectangle((bb[0], bb[1]), bb[2], bb[3],facecolor='none',edgecolor=(1,1-prob,1-prob)))          
-                plt.text(bb[0],bb[1],'%.3f' % prob,color='b')
+#             ind = np.argsort(cand_probs)
+#             ind = ind[::-1]
+#             bb_num_show = np.min([32, len(cand_bbs)])
+#             cand_bbs = cand_bbs[ind[:bb_num_show]]
+#             cand_probs = cand_probs[ind[:bb_num_show]]
+#             for i in range(bb_num_show):
+#                 bb = cand_bbs[i]
+#                 prob = cand_probs[i]
+#                 ax.add_patch(Rectangle((bb[0], bb[1]), bb[2], bb[3],facecolor='none',edgecolor=(1,1-prob,1-prob)))          
+#                 plt.text(bb[0],bb[1],'%.3f' % prob,color='b')
             
             
             nms_bbs = non_max_suppression_slow(cand_bbs,cand_probs,0.3)
@@ -216,60 +215,12 @@ class FasterRCNN_Loss(caffe.Layer):
                 ax.add_patch(Rectangle((bb[0], bb[1]), bb[2], bb[3],facecolor='none',edgecolor=(0,1,0)))        
             plt.text(10,10,'iter=%06d, precision=%.3f, recall=%.3f' % (self.iter,cls_precision,cls_recall),color='r')
             
-            ax.add_patch(Rectangle((gt_box[0],gt_box[1]),gt_box[2],gt_box[3],facecolor="blue", alpha=.5))
-            # plt.savefig('%s/snapshot/%s_%06d.jpg' % (self.py_dir,self.phase,self.iter),dpi=100)            
+            plt.savefig('%s/snapshot/%s_%06d.jpg' % (self.py_dir,self.phase,self.iter),dpi=100)            
             plt.show()
         self.iter += 1        
         
     def backward(self, top, propagate_down, bottom):
-        sampling_param = bottom[3].data
-        tags = bottom[2].data
-        reg_conv = bottom[1].data
-        cls_conv = bottom[0].data
-        
-        batch_size = len(sampling_param)
-        
-        if propagate_down[0]:
-            cls_diff = np.zeros_like(cls_conv, dtype=np.float32)        
-            for i in range(batch_size):
-                x_index = sampling_param[i][4]
-                y_index = sampling_param[i][5]
-                size_index = sampling_param[i][6]
-            
-                cls_label = tags[0,5*size_index,y_index,x_index]    
-                cls_pred = cls_conv[0,2*size_index : 2*size_index+2 ,y_index,x_index]#real number                        
-                
-                if cls_pred[1] - cls_pred[0] < 20:
-                    cls_diff[0,  2*size_index, y_index, x_index] += 1.0 / np.sum(np.exp(cls_pred - cls_pred[0])) - np.float32(cls_label<0.5)
-                else:
-                    cls_diff[0,  2*size_index, y_index, x_index] += 0.0 - np.float32(cls_label<0.5)
-                
-                if cls_pred[0] - cls_pred[1] < 20:
-                    cls_diff[0,1+2*size_index, y_index, x_index] += 1.0 / np.sum(np.exp(cls_pred - cls_pred[1])) - np.float32(cls_label>0.5)
-                else:
-                    cls_diff[0,1+2*size_index, y_index, x_index] += 0.0 - np.float32(cls_label>0.5)
-                
-            bottom[0].diff[...] = cls_diff/batch_size
-        
-        if propagate_down[1]:
-            reg_diff = np.zeros_like(reg_conv, dtype=np.float32)
-            pos_count = 0
-            for i in range(batch_size):
-                x_index = sampling_param[i][4]
-                y_index = sampling_param[i][5]
-                size_index = sampling_param[i][6]
-            
-                cls_label = tags[0,5*size_index,y_index,x_index]#1 or 0
-                if cls_label < 0.5:
-                    continue
-                pos_count += 1
-                
-                reg_label = tags[0,5*size_index+1 : 5*size_index+5, y_index, x_index]
-                reg_pred = reg_conv[0,4*size_index : 4*size_index+4, y_index, x_index]
-                reg_diff[0,4*size_index : 4*size_index+4, y_index, x_index] += reg_pred - reg_label
-            
-            if pos_count > 0:
-                reg_diff = reg_diff/pos_count
-            
-            bottom[1].diff[...] = self.reg_loss_weight * reg_diff
+        """no backward for prediction
+        """
+        pass
         

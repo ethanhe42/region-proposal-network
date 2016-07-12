@@ -25,6 +25,7 @@ class solverWrapper(object):
         self.solver=caffe.SGDSolver("solver.prototxt")
         # self.solver.net.layers[0].set_data_queue(rawData())
         # self.solver.net.copy_from("init.caffemodel")
+        self.solver.net.copy_from("rpn_drn_iter_30000.caffemodel")
     
     def train_model(self):
         for iter in range(500*2000):

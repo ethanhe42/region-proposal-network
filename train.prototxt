@@ -7,6 +7,7 @@ layer {
   top: "data"
   top: "label"
   top: "sampling_param"
+  top: "gt_boxes"
   include {
     phase: TRAIN
   }  
@@ -953,6 +954,7 @@ layer {
   bottom: "label"
   bottom: "sampling_param"
   bottom: "data"
+  bottom: "gt_boxes"
   top: "loss"
   include {
     phase: TRAIN
@@ -972,6 +974,7 @@ layer {
   bottom: "label"
   bottom: "sampling_param"
   bottom: "data"
+  bottom: "gt_boxes"
   top: "loss"
   include {
     phase: TEST

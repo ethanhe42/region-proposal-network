@@ -6,6 +6,7 @@ import caffe
 import os
 import cython_bbox
 from ultrasound import rawData
+import cfgs
 
 def random_zoomout(img0):
     zoom_ratio = 1.0 #np.random.rand()*0.8 + 0.2
@@ -26,14 +27,14 @@ def random_zoomout(img0):
 class FasterRCNN_Data(caffe.Layer):       
     def setup(self,bottom,top):   
         self._name_to_top_map={'data':0,'label':1,'sampling_param':2}
-        self.resize_width = 320
-        self.resize_height = 240
-        self.batch_size = 150
-        self.sliding_window_width =  [20,20, 30,30, 40,40, 50,50]
-        self.sliding_window_height = [30,40, 45,60, 60,80, 75,100] 
-        self.sliding_window_stride = 8   
-        self.iou_positive_thres = 0.5
-        self.iou_negative_thres = 0.3   
+        self.resize_width = cfgs.resize_width
+        self.resize_height = cfgs.resize_height
+        self.batch_size = cfgs.batch_size
+        self.sliding_window_width = cfgs.sliding_window_width
+        self.sliding_window_height = cfgs.sliding_window_height
+        self.sliding_window_stride = cfgs.sliding_window_stride
+        self.iou_positive_thres = cfgs.iou_positive_thres
+        self.iou_negative_thres = cfgs.iou_negative_thres 
         self.phase = eval(self.param_str)['phase']
         self.dat_dir = eval(self.param_str)['dat_dir']     
         self.iter = 0
@@ -49,6 +50,8 @@ class FasterRCNN_Data(caffe.Layer):
         feature_map_width = self.resize_width / self.sliding_window_stride
         top[1].reshape(1, 5*len(self.sliding_window_width), feature_map_height, feature_map_width)
         top[2].reshape(self.batch_size, 7)
+
+        top[3].reshape(1, 4)
 
     def get_next_image(self):
         while True:
@@ -239,7 +242,8 @@ class FasterRCNN_Data(caffe.Layer):
             print '[%s] pos_anchor: %d, neg_anchor:%d' % (self.py_fn, len(pos_anchor), len(neg_anchor))
         top[1].data[...]=tags    
         top[2].data[...]=sampling_param   
-                              
+        
+        top[3].data[...]=bbs
         self.iter += 1  
 
     def backward(self,top,propagate_Down,bottom):
