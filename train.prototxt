@@ -17,21 +17,21 @@ layer {
   }
 }
 
-layer {
-  name: "data"
-  type: "Python"
-  top: "data"
-  top: "label"
-  top: "sampling_param"
-  include {
-    phase: TEST
-  }
-  python_param {
-    module: "fasterRCNN_data"
-    layer: "FasterRCNN_Data"
-    param_str: "{'phase':'TEST','dat_dir':'/mnt/data1/huyangyang/datasets/imgwithallbox_test_noCaltech'}"
-  }
-}
+#layer {
+#  name: "data"
+#  type: "Python"
+#  top: "data"
+#  top: "label"
+#  top: "sampling_param"
+#  include {
+#    phase: TEST
+#  }
+#  python_param {
+#    module: "fasterRCNN_data"
+#    layer: "FasterRCNN_Data"
+#    param_str: "{'phase':'TEST','dat_dir':'/mnt/data1/huyangyang/datasets/imgwithallbox_test_noCaltech'}"
+#  }
+#}
 
 
 

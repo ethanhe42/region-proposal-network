@@ -5,6 +5,7 @@ import sys
 import caffe
 import os
 import cython_bbox
+from ultrasound import rawData
 
 def random_zoomout(img0):
     zoom_ratio = 1.0 #np.random.rand()*0.8 + 0.2
@@ -14,7 +15,12 @@ def random_zoomout(img0):
     p = [np.random.randint(np.max([1,sz[1] - w])) , np.random.randint(np.max([1,sz[0] - h]))]
     img1 = misc.imresize(img0, (h,w))
     img = np.zeros_like(img0)
-    img[p[1] : p[1] + h, p[0]:p[0] + w, :] = img1
+    # print img0.shape
+    if len(img0.shape)==2:
+        img[p[1] : p[1] + h, p[0]:p[0] + w] = img1
+    else:
+        img[p[1] : p[1] + h, p[0]:p[0] + w, :] = img1
+
     return (img,p,zoom_ratio)
 
 class FasterRCNN_Data(caffe.Layer):       
@@ -22,7 +28,7 @@ class FasterRCNN_Data(caffe.Layer):
         self._name_to_top_map={'data':0,'label':1,'sampling_param':2}
         self.resize_width = 320
         self.resize_height = 240
-        self.batch_size = 512
+        self.batch_size = 150
         self.sliding_window_width =  [20,20, 30,30, 40,40, 50,50]
         self.sliding_window_height = [30,40, 45,60, 60,80, 75,100] 
         self.sliding_window_stride = 8   
@@ -33,6 +39,9 @@ class FasterRCNN_Data(caffe.Layer):
         self.iter = 0
         self.py_fn = __file__.split('/')[-1]
         self.py_dir = os.path.dirname(__file__)
+
+        print "setup"
+        self.data_queue=rawData()
         
     def reshape(self,bottom,top):
         top[0].reshape(1, 3, self.resize_height, self.resize_width)
@@ -42,36 +51,51 @@ class FasterRCNN_Data(caffe.Layer):
         top[2].reshape(self.batch_size, 7)
 
     def get_next_image(self):
-        dat_index = -1
-        img_index = -1
         while True:
-            if self.phase == 'TRAIN': 
-                candidate_index = range(300) + range(400,582)               
-                dat_index = candidate_index[np.random.randint(len(candidate_index))]
-                img_index = np.random.randint(512)
-            else:
-                dat_index = np.random.randint(300,400)
-                img_index = np.random.randint(512)   
-                             
-            img_fn = '%s/dat-%06d/img-%06d.jpg' % (self.dat_dir, dat_index, img_index)
-            tag_fn = '%s/dat-%06d/img-%06d.h5' % (self.dat_dir, dat_index, img_index)
-            if not( os.path.exists(img_fn) and os.path.exists(tag_fn)):
+            blobs=self.data_queue.nextBatch()
+            img=blobs['data'][0,0]
+            bbs,_=np.hsplit(blobs['gt_boxes'],[-1])
+            # print bbs.shape
+            if len(bbs)==0:
                 continue
-            with h5py.File(tag_fn,'r') as h5f:
-                bbs = np.float32(h5f['upper_label'][:])
-                if bbs.shape[0]==0:
-                    continue
-            if os.path.exists(img_fn) and os.path.exists(tag_fn):
-                break
-            
-        return (img_fn, tag_fn)
+
+            bbs[:,2]-=bbs[:,0]
+            bbs[:,3]-=bbs[:,1]
+
+            return img, bbs
+        
+
+        # dat_index = -1
+        # img_index = -1
+        # while True:
+        #     if self.phase == 'TRAIN': 
+        #         candidate_index = range(300) + range(400,582)               
+        #         dat_index = candidate_index[np.random.randint(len(candidate_index))]
+        #         img_index = np.random.randint(512)
+        #     else:
+        #         dat_index = np.random.randint(300,400)
+        #         img_index = np.random.randint(512)   
+                             
+        #     img_fn = '%s/dat-%06d/img-%06d.jpg' % (self.dat_dir, dat_index, img_index)
+        #     tag_fn = '%s/dat-%06d/img-%06d.h5' % (self.dat_dir, dat_index, img_index)
+        #     if not( os.path.exists(img_fn) and os.path.exists(tag_fn)):
+        #         continue
+        #     with h5py.File(tag_fn,'r') as h5f:
+        #         bbs = np.float32(h5f['upper_label'][:])
+        #         if bbs.shape[0]==0:
+        #             continue
+        #     if os.path.exists(img_fn) and os.path.exists(tag_fn):
+        #         break
+        # return (img_fn, tag_fn)
+
             
     def forward(self,bottom,top):
         #load image
-        (img_fn, tag_fn) = self.get_next_image()
+        # (img_fn, tag_fn) = self.get_next_image()
+        (img, bbs) = self.get_next_image()
         
         #print img_fn
-        img = misc.imread(img_fn)
+        # img = misc.imread(img_fn)
         (img,pos,zoom_ratio) = random_zoomout(img)
         
         img_height = np.shape(img)[0]
@@ -84,16 +108,25 @@ class FasterRCNN_Data(caffe.Layer):
         else:
             norm_img = (np.float32(img) - minv) / (maxv - minv) - 0.5
         
-        top[0].data[0,:,:,:]=np.transpose(norm_img, (2,0,1))
-        
+        if len(norm_img.shape)==2:
+            top[0].data[0,0,:,:]=norm_img
+        else:
+            top[0].data[0,:,:,:]=np.transpose(norm_img, (2,0,1))
+        # 0 xmin 1 ymin 2 w 3 h 
+
         #load tag
-        with h5py.File(tag_fn,'r') as h5f:
-            bbs = np.float32(h5f['upper_label'][:])
-            bbs[:,0] = bbs[:,0]*zoom_ratio + pos[0]
-            bbs[:,1] = bbs[:,1]*zoom_ratio + pos[1]
-            bbs[:,2] = bbs[:,2]*zoom_ratio
-            bbs[:,3] = bbs[:,3]*zoom_ratio
+        # with h5py.File(tag_fn,'r') as h5f:
+        #     bbs = np.float32(h5f['upper_label'][:])
+        #     bbs[:,0] = bbs[:,0]*zoom_ratio + pos[0]
+        #     bbs[:,1] = bbs[:,1]*zoom_ratio + pos[1]
+        #     bbs[:,2] = bbs[:,2]*zoom_ratio
+        #     bbs[:,3] = bbs[:,3]*zoom_ratio
                     
+        bbs[:,0] = bbs[:,0]*zoom_ratio + pos[0]
+        bbs[:,1] = bbs[:,1]*zoom_ratio + pos[1]
+        bbs[:,2] = bbs[:,2]*zoom_ratio
+        bbs[:,3] = bbs[:,3]*zoom_ratio        
+
         bbs[:,0] = bbs[:,0]*self.resize_width/img_width
         bbs[:,2] = bbs[:,2]*self.resize_width/img_width
         bbs[:,1] = bbs[:,1]*self.resize_height/img_height
@@ -202,7 +235,8 @@ class FasterRCNN_Data(caffe.Layer):
             for i in range(pos_num_in_batch,self.batch_size):
                 sampling_param[i,:] = neg_anchor[(i - pos_num_in_batch) % neg_anchor_num]
         
-        print '[%s] pos_anchor: %d, neg_anchor:%d' % (self.py_fn, len(pos_anchor), len(neg_anchor))
+        if np.random.randint(50)==0:
+            print '[%s] pos_anchor: %d, neg_anchor:%d' % (self.py_fn, len(pos_anchor), len(neg_anchor))
         top[1].data[...]=tags    
         top[2].data[...]=sampling_param   
                               

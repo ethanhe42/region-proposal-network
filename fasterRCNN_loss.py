@@ -145,13 +145,13 @@ class FasterRCNN_Loss(caffe.Layer):
 
         cls_recall = correct_count[1] / pos_count
                 
-        if self.phase == 'TRAIN':
+        if self.phase == 'TRAIN' and np.random.randint(50)==0:
             print '[%s] Train net output #1: acc = %f' % (self.py_fn,cls_acc)
             print '[%s] Train net output #2: cls_loss = %f' % (self.py_fn,cls_loss)
             print '[%s] Train net output #3: reg_loss = %f' % (self.py_fn,reg_loss)
             print '[%s] Train net output #4: precision = %f' % (self.py_fn,cls_precision)
             print '[%s] Train net output #5: recall = %f' % (self.py_fn,cls_recall)
-        else:
+        elif np.random.randint(50)==0:
             print '[%s] Test net output #1: acc = %f' % (self.py_fn,cls_acc)
             print '[%s] Test net output #2: cls_loss = %f' % (self.py_fn,cls_loss)
             print '[%s] Test net output #3: reg_loss = %f' % (self.py_fn,reg_loss)
