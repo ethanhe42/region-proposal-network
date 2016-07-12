@@ -8,31 +8,12 @@ layer {
   top: "label"
   top: "sampling_param"
   top: "gt_boxes"
-  include {
-    phase: TRAIN
-  }  
   python_param {
     module: "fasterRCNN_data"
     layer: "FasterRCNN_Data"
-    param_str: "{'phase':'TRAIN','dat_dir':'/mnt/data1/huyangyang/datasets/imgwithallbox_train'}"
+#    param_str: "{'phase':'TRAIN','dat_dir':'/mnt/data1/huyangyang/datasets/imgwithallbox_train'}"
   }
 }
-
-#layer {
-#  name: "data"
-#  type: "Python"
-#  top: "data"
-#  top: "label"
-#  top: "sampling_param"
-#  include {
-#    phase: TEST
-#  }
-#  python_param {
-#    module: "fasterRCNN_data"
-#    layer: "FasterRCNN_Data"
-#    param_str: "{'phase':'TEST','dat_dir':'/mnt/data1/huyangyang/datasets/imgwithallbox_test_noCaltech'}"
-#  }
-#}
 
 
 
@@ -965,23 +946,4 @@ layer {
     param_str: "{'phase':'TRAIN'}"
   }
   loss_weight: 1
-}
-layer {
-  name: "loss"
-  type: "Python"
-  bottom: "conv8_cls"
-  bottom: "conv8_reg"
-  bottom: "label"
-  bottom: "sampling_param"
-  bottom: "data"
-  bottom: "gt_boxes"
-  top: "loss"
-  include {
-    phase: TEST
-  }
-  python_param {
-    module: "fasterRCNN_loss"
-    layer: "FasterRCNN_Loss"
-    param_str: "{'phase':'TEST'}"
-  }
 }

@@ -6,17 +6,27 @@ import matplotlib.patches as patches
 data_path='/mnt/data1/yihuihe/mnc/'
 
 class rawData:
-    def __init__(self):
+    def __init__(self, split=.9):
         self.imdb=np.load(data_path+'data.npy')
         self.maskdb=np.load(data_path+'maskdb.npy')
         self.roidb=np.load(data_path+'roidb.npy')        
         self.mask=np.load(data_path+'mask.npy')
         self.total=self.imdb.shape[0]
+        self.split=split
+        
 
 
-    def nextBatch(self, d=False):
+    def nextBatch(self, TRAIN=True, d=False):
+        """get next batch for train or validation
+        :param TRAIN: phase
+        :return: blobs
+        """
         while True:
-            idx=np.random.randint(self.total)
+            if TRAIN==True:
+                idx=np.random.randint(self.split*self.total)
+            else:
+                idx=np.random.randint(self.split*self.total,high=self.total)
+                
             if len(self.roidb[idx])!=0:
                 break
         
@@ -50,7 +60,7 @@ class rawData:
             'mask_info':mask_info
         }
         if d: 
-            # i is always 1
+            # i is always 1, in ultrasound case
             for i in range(blobs['data'].shape[0]):
                 print blobs['im_info']
                 print blobs['mask_info']
@@ -77,4 +87,4 @@ class rawData:
 if __name__=='__main__':
     raw=rawData()
     while True:
-        raw.nextBatch(True)
+        raw.nextBatch(d=True)

@@ -35,8 +35,8 @@ class FasterRCNN_Data(caffe.Layer):
         self.sliding_window_stride = cfgs.sliding_window_stride
         self.iou_positive_thres = cfgs.iou_positive_thres
         self.iou_negative_thres = cfgs.iou_negative_thres 
-        self.phase = eval(self.param_str)['phase']
-        self.dat_dir = eval(self.param_str)['dat_dir']     
+        # self.phase = eval(self.param_str)['phase']
+        # self.dat_dir = eval(self.param_str)['dat_dir']     
         self.iter = 0
         self.py_fn = __file__.split('/')[-1]
         self.py_dir = os.path.dirname(__file__)
@@ -55,7 +55,11 @@ class FasterRCNN_Data(caffe.Layer):
 
     def get_next_image(self):
         while True:
-            blobs=self.data_queue.nextBatch()
+            if self.phase==caffe.TRAIN:
+                blobs=self.data_queue.nextBatch()
+            else:
+                blobs=self.data_queue.nextBatch(TRAIN=False)
+                
             img=blobs['data'][0,0]
             bbs,_=np.hsplit(blobs['gt_boxes'],[-1])
             # print bbs.shape
@@ -66,31 +70,6 @@ class FasterRCNN_Data(caffe.Layer):
             bbs[:,3]-=bbs[:,1]
 
             return img, bbs
-        
-
-        # dat_index = -1
-        # img_index = -1
-        # while True:
-        #     if self.phase == 'TRAIN': 
-        #         candidate_index = range(300) + range(400,582)               
-        #         dat_index = candidate_index[np.random.randint(len(candidate_index))]
-        #         img_index = np.random.randint(512)
-        #     else:
-        #         dat_index = np.random.randint(300,400)
-        #         img_index = np.random.randint(512)   
-                             
-        #     img_fn = '%s/dat-%06d/img-%06d.jpg' % (self.dat_dir, dat_index, img_index)
-        #     tag_fn = '%s/dat-%06d/img-%06d.h5' % (self.dat_dir, dat_index, img_index)
-        #     if not( os.path.exists(img_fn) and os.path.exists(tag_fn)):
-        #         continue
-        #     with h5py.File(tag_fn,'r') as h5f:
-        #         bbs = np.float32(h5f['upper_label'][:])
-        #         if bbs.shape[0]==0:
-        #             continue
-        #     if os.path.exists(img_fn) and os.path.exists(tag_fn):
-        #         break
-        # return (img_fn, tag_fn)
-
             
     def forward(self,bottom,top):
         #load image
@@ -116,14 +95,6 @@ class FasterRCNN_Data(caffe.Layer):
         else:
             top[0].data[0,:,:,:]=np.transpose(norm_img, (2,0,1))
         # 0 xmin 1 ymin 2 w 3 h 
-
-        #load tag
-        # with h5py.File(tag_fn,'r') as h5f:
-        #     bbs = np.float32(h5f['upper_label'][:])
-        #     bbs[:,0] = bbs[:,0]*zoom_ratio + pos[0]
-        #     bbs[:,1] = bbs[:,1]*zoom_ratio + pos[1]
-        #     bbs[:,2] = bbs[:,2]*zoom_ratio
-        #     bbs[:,3] = bbs[:,3]*zoom_ratio
                     
         bbs[:,0] = bbs[:,0]*zoom_ratio + pos[0]
         bbs[:,1] = bbs[:,1]*zoom_ratio + pos[1]
