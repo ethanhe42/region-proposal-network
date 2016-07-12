@@ -13,7 +13,7 @@ class rawData:
         self.mask=np.load(data_path+'mask.npy')
         self.total=self.imdb.shape[0]
         self.split=split
-        
+        print "im data shape:", self.imdb.shape
 
 
     def nextBatch(self, TRAIN=True, d=False):

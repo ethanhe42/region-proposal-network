@@ -209,8 +209,8 @@ class FasterRCNN_Data(caffe.Layer):
             for i in range(pos_num_in_batch,self.batch_size):
                 sampling_param[i,:] = neg_anchor[(i - pos_num_in_batch) % neg_anchor_num]
         
-        if np.random.randint(50)==0:
-            print '[%s] pos_anchor: %d, neg_anchor:%d' % (self.py_fn, len(pos_anchor), len(neg_anchor))
+        # if np.random.randint(50)==0:
+        #     print '[%s] pos_anchor: %d, neg_anchor:%d' % (self.py_fn, len(pos_anchor), len(neg_anchor))
         top[1].data[...]=tags    
         top[2].data[...]=sampling_param   
         

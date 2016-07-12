@@ -6,6 +6,8 @@ import sys
 import os
 import cfgs
 
+visualize=False
+
 def transform_bb(bb0,w,h):
     bb = np.array([0,0,0,0])
     bb[2]=np.exp(bb0[2])*w
@@ -148,7 +150,7 @@ class FasterRCNN_Loss(caffe.Layer):
 
         cls_recall = correct_count[1] / pos_count
                 
-        display=50
+        display=100
         if self.phase == 'TRAIN' and self.iter%display==0:
             print '[%s] Train net output #1: acc = %f' % (self.py_fn,cls_acc)
             print '[%s] Train net output #2: cls_loss = %f' % (self.py_fn,cls_loss)
@@ -163,7 +165,7 @@ class FasterRCNN_Loss(caffe.Layer):
             print '[%s] Test net output #5: recall = %f' % (self.py_fn,cls_recall)
         sys.stdout.flush()
   
-        if False and self.phase== caffe.TEST:#self.phase == 'TEST' or self.iter % 10 == 0:
+        if visualize and self.phase== caffe.TEST:#self.phase == 'TEST' or self.iter % 10 == 0:
             img0 = bottom[4].data[0,:,:,:]
             img = np.transpose(img0, (1,2,0)) + 0.5
             

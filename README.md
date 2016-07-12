@@ -1,5 +1,6 @@
 # Region Proposal Network
 ### TODO
 - [x] create validation with nextbatch
-- [ ] anchor
-- [ ] image size
+- [ ] revise anchor
+- [x] image size
+- [ ] train on some no foreground images
