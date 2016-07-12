@@ -937,13 +937,10 @@ layer {
   bottom: "data"
   bottom: "gt_boxes"
   top: "loss"
-  include {
-    phase: TRAIN
-  }
   python_param {
     module: "fasterRCNN_loss"
     layer: "FasterRCNN_Loss"
-    param_str: "{'phase':'TRAIN'}"
+#    param_str: "{'phase':'TRAIN'}"
   }
   loss_weight: 1
 }

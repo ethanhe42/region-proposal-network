@@ -1,5 +1,5 @@
 # Region Proposal Network
 ### TODO
-- [ ] validation
+- [x] create validation with nextbatch
 - [ ] anchor
 - [ ] image size

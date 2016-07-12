@@ -82,7 +82,7 @@ def non_max_suppression_slow(boxes,probs, overlapThresh):
 class FasterRCNN_Loss(caffe.Layer):
     def setup(self, bottom, top):
         self.reg_loss_weight = 0.1
-        self.phase = eval(self.param_str)['phase']  
+        # self.phase = eval(self.param_str)['phase']  
         self.iter = 0
         self.py_fn = __file__.split('/')[-1]
         self.py_dir = os.path.dirname(__file__)
@@ -148,13 +148,14 @@ class FasterRCNN_Loss(caffe.Layer):
 
         cls_recall = correct_count[1] / pos_count
                 
-        if self.phase == 'TRAIN' and np.random.randint(50)==0:
+        display=50
+        if self.phase == 'TRAIN' and self.iter%display==0:
             print '[%s] Train net output #1: acc = %f' % (self.py_fn,cls_acc)
             print '[%s] Train net output #2: cls_loss = %f' % (self.py_fn,cls_loss)
             print '[%s] Train net output #3: reg_loss = %f' % (self.py_fn,reg_loss)
             print '[%s] Train net output #4: precision = %f' % (self.py_fn,cls_precision)
             print '[%s] Train net output #5: recall = %f' % (self.py_fn,cls_recall)
-        elif np.random.randint(50)==0:
+        elif self.iter%display==0:
             print '[%s] Test net output #1: acc = %f' % (self.py_fn,cls_acc)
             print '[%s] Test net output #2: cls_loss = %f' % (self.py_fn,cls_loss)
             print '[%s] Test net output #3: reg_loss = %f' % (self.py_fn,reg_loss)
@@ -162,7 +163,7 @@ class FasterRCNN_Loss(caffe.Layer):
             print '[%s] Test net output #5: recall = %f' % (self.py_fn,cls_recall)
         sys.stdout.flush()
   
-        if True:#self.phase == 'TEST' or self.iter % 10 == 0:
+        if False and self.phase== caffe.TEST:#self.phase == 'TEST' or self.iter % 10 == 0:
             img0 = bottom[4].data[0,:,:,:]
             img = np.transpose(img0, (1,2,0)) + 0.5
             

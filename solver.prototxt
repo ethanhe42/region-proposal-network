@@ -1,7 +1,7 @@
 net: "train.prototxt"
 average_loss: 100
-# test_iter: 1
-# test_interval: 100
+test_iter: 300
+test_interval: 1500
 base_lr: 0.001
 lr_policy: "fixed"
 display: 100
