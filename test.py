@@ -16,7 +16,7 @@ from ultrasound import rawData
 debug=True
 
 # init
-caffe.set_device(1)
+caffe.set_device(0)
 caffe.set_mode_gpu()
 # caffe.set_mode_cpu()
 
@@ -25,7 +25,7 @@ class solverWrapper(object):
         self.solver=caffe.SGDSolver("solver.prototxt")
         # self.solver.net.layers[0].set_data_queue(rawData())
         # self.solver.net.copy_from("init.caffemodel")
-        self.solver.net.copy_from("rpn_drn_iter_30000.caffemodel")
+        self.solver.net.copy_from("rpn_drn_iter_50000.caffemodel")
     
     def train_model(self):
         for iter in range(500*2000):
@@ -47,9 +47,6 @@ class solverWrapper(object):
                             plt.show()
                         
             self.solver.step(1)
-
-
-
 
 if __name__=="__main__":
     solve=solverWrapper()

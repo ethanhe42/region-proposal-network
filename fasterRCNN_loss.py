@@ -6,7 +6,7 @@ import sys
 import os
 import cfgs
 
-visualize=False
+visualize=True
 
 def transform_bb(bb0,w,h):
     bb = np.array([0,0,0,0])
@@ -166,8 +166,11 @@ class FasterRCNN_Loss(caffe.Layer):
         sys.stdout.flush()
   
         if visualize and self.phase== caffe.TEST:#self.phase == 'TEST' or self.iter % 10 == 0:
-            img0 = bottom[4].data[0,:,:,:]
-            img = np.transpose(img0, (1,2,0)) + 0.5
+            if bottom[4].data.shape[1]==1:
+                img = bottom[4].data[0,0,:,:]
+            else:
+                img0 = bottom[4].data[0,:,:,:]
+                img = np.transpose(img0, (1,2,0)) + 0.5
             
             plt.clf()
             ax = plt.gca()
@@ -182,6 +185,7 @@ class FasterRCNN_Loss(caffe.Layer):
             for size_index in range(len(sliding_window_height)):
                 for y_index in range(resize_height/sliding_window_stride):
                     for x_index in range(resize_width/sliding_window_stride):
+                        reg_conv[0, 4*size_index : 4*size_index+4 ,y_index,x_index]
                         h = sliding_window_height[size_index]
                         w = sliding_window_width[size_index]
                         x = x_index*sliding_window_stride + sliding_window_stride/2-1 - w/2
@@ -202,21 +206,21 @@ class FasterRCNN_Loss(caffe.Layer):
             cand_bbs=np.array(cand_bbs)
             cand_probs = np.array(cand_probs)  
                   
-            ind = np.argsort(cand_probs)
-            ind = ind[::-1]
-            bb_num_show = np.min([32, len(cand_bbs)])
-            cand_bbs = cand_bbs[ind[:bb_num_show]]
-            cand_probs = cand_probs[ind[:bb_num_show]]
-            for i in range(bb_num_show):
-                bb = cand_bbs[i]
-                prob = cand_probs[i]
-                ax.add_patch(Rectangle((bb[0], bb[1]), bb[2], bb[3],facecolor='none',edgecolor=(1,1-prob,1-prob)))          
-                plt.text(bb[0],bb[1],'%.3f' % prob,color='b')
+            #ind = np.argsort(cand_probs)
+            #ind = ind[::-1]
+            #bb_num_show = np.min([32, len(cand_bbs)])
+            #cand_bbs = cand_bbs[ind[:bb_num_show]]
+            #cand_probs = cand_probs[ind[:bb_num_show]]
+            #for i in range(bb_num_show):
+            #    bb = cand_bbs[i]
+            #    prob = cand_probs[i]
+            #    ax.add_patch(Rectangle((bb[0], bb[1]), bb[2], bb[3],facecolor='none',edgecolor="red"))          
+            #    plt.text(bb[0],bb[1],'%.3f' % prob,color='b')
             
             
             nms_bbs = non_max_suppression_slow(cand_bbs,cand_probs,0.3)
             for bb in nms_bbs:
-                ax.add_patch(Rectangle((bb[0], bb[1]), bb[2], bb[3],facecolor='none',edgecolor=(0,1,0)))        
+                ax.add_patch(Rectangle((bb[0], bb[1]), bb[2], bb[3],facecolor='none',edgecolor="green"))        
             plt.text(10,10,'iter=%06d, precision=%.3f, recall=%.3f' % (self.iter,cls_precision,cls_recall),color='r')
             
             ax.add_patch(Rectangle((gt_box[0],gt_box[1]),gt_box[2],gt_box[3],facecolor="blue", alpha=.5))
