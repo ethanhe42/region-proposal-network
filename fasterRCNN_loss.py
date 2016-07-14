@@ -78,7 +78,7 @@ def non_max_suppression_slow(boxes,probs, overlapThresh):
         idxs = np.delete(idxs, suppress)
 
     # return only the bounding boxes that were picked
-    return boxes[pick]
+    return boxes[pick], probs[pick]
 
 
 class FasterRCNN_Loss(caffe.Layer):
@@ -185,7 +185,7 @@ class FasterRCNN_Loss(caffe.Layer):
             for size_index in range(len(sliding_window_height)):
                 for y_index in range(resize_height/sliding_window_stride):
                     for x_index in range(resize_width/sliding_window_stride):
-                        reg_conv[0, 4*size_index : 4*size_index+4 ,y_index,x_index]
+
                         h = sliding_window_height[size_index]
                         w = sliding_window_width[size_index]
                         x = x_index*sliding_window_stride + sliding_window_stride/2-1 - w/2
@@ -218,12 +218,16 @@ class FasterRCNN_Loss(caffe.Layer):
             #    plt.text(bb[0],bb[1],'%.3f' % prob,color='b')
             
             
-            nms_bbs = non_max_suppression_slow(cand_bbs,cand_probs,0.3)
-            for bb in nms_bbs:
-                ax.add_patch(Rectangle((bb[0], bb[1]), bb[2], bb[3],facecolor='none',edgecolor="green"))        
-            plt.text(10,10,'iter=%06d, precision=%.3f, recall=%.3f' % (self.iter,cls_precision,cls_recall),color='r')
-            
-            ax.add_patch(Rectangle((gt_box[0],gt_box[1]),gt_box[2],gt_box[3],facecolor="blue", alpha=.5))
+            nms_bbs = non_max_suppression_slow(cand_bbs,cand_probs,0.1)
+            if len(nms_bbs)!=0:
+                a=nms_bbs[0]
+                b=nms_bbs[1]
+                for bb,pp in zip(a,b):
+                    ax.add_patch(Rectangle((bb[0], bb[1]), bb[2], bb[3],facecolor='none',edgecolor="yellow"))        
+                    plt.text(bb[0],bb[1],'%.3f' % pp,color='b')
+                plt.text(10,10,'iter=%06d, precision=%.3f, recall=%.3f' % (self.iter,cls_precision,cls_recall),color='r')
+                
+                ax.add_patch(Rectangle((gt_box[0],gt_box[1]),gt_box[2],gt_box[3],facecolor="blue", alpha=.5))
             # plt.savefig('%s/snapshot/%s_%06d.jpg' % (self.py_dir,self.phase,self.iter),dpi=100)            
             plt.show()
         self.iter += 1        

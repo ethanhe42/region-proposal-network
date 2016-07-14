@@ -1,4 +1,8 @@
 # Region Proposal Network
+Multitasks Networks Cascades for Polyp Image Segmentation.  
+run this program with `python test.py`
+
+
 ### TODO
 - [x] create validation with nextbatch
 - [x] revise anchor
